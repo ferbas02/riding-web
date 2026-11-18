@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Equitación</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#1f6f5c">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Equitación">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="app">
+
+    <div id="banner" hidden>
+      <span id="banner-msg"></span>
+      <button id="banner-retry" type="button">Reintentar</button>
+    </div>
+    <div id="connecting" hidden>Conectando con la base de datos…</div>
+
+    <!-- Token -->
+    <section id="view-token" class="view" hidden>
+      <h1>Equitación</h1>
+      <p class="muted">Pega el token de acceso. Se guarda solo en este dispositivo.</p>
+      <input id="token-input" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Token">
+      <p id="token-msg" class="error"></p>
+      <button id="token-save" class="primary" type="button">Guardar</button>
+    </section>
+
+    <!-- Hoy -->
+    <section id="view-home" class="view" hidden>
+      <h1 id="home-month"></h1>
+      <div class="ring-wrap">
+        <svg viewBox="0 0 140 140" class="ring" aria-hidden="true">
+          <circle cx="70" cy="70" r="54" class="ring-bg"/>
+          <circle cx="70" cy="70" r="54" class="ring-fg" id="ring-fg" transform="rotate(-90 70 70)"/>
+        </svg>
+        <div class="ring-text">
+          <div id="count">–</div>
+          <div id="target" class="muted"></div>
+        </div>
+      </div>
+      <p id="status" class="status"></p>
+      <button id="add-btn" class="primary big" type="button">Registrar clase</button>
+      <p id="today-info" class="muted center"></p>
+      <p class="center"><button id="change-token" class="link" type="button">Cambiar token</button></p>
+    </section>
+
+    <!-- Calendario -->
+    <section id="view-cal" class="view" hidden>
+      <div class="cal-head">
+        <button id="cal-prev" class="nav" type="button" aria-label="Mes anterior">‹</button>
+        <h1 id="cal-title"></h1>
+        <button id="cal-next" class="nav" type="button" aria-label="Mes siguiente">›</button>
+      </div>
+      <div class="dow"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
+      <div id="cal-grid" class="grid"></div>
+      <div class="total-card">
+        <div>Total del mes</div>
+        <div><strong id="cal-total">–</strong> <span id="cal-target" class="muted"></span></div>
+      </div>
+      <p id="cal-extra" class="muted center"></p>
+    </section>
+  </main>
+
+  <nav id="tabs" hidden>
+    <button data-tab="home" type="button">Hoy</button>
+    <button data-tab="cal" type="button">Calendario</button>
+  </nav>
+
+  <div id="toast" hidden>
+    <span id="toast-msg"></span>
+    <button id="toast-undo" type="button">Deshacer</button>
+  </div>
+
+  <div id="sheet" hidden>
+    <div class="sheet-backdrop" id="sheet-backdrop"></div>
+    <div class="sheet-body">
+      <h2 id="sheet-title"></h2>
+      <ul id="sheet-list"></ul>
+      <button id="sheet-add" class="primary" type="button">+ Agregar clase este día</button>
+      <button id="sheet-close" class="link" type="button">Cerrar</button>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
