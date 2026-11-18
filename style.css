@@ -71,6 +71,23 @@ input {
 }
 .total-card strong { font-size: 28px; }
 
+/* Festivos y notificaciones */
+.day.holiday { border-color: #d98b8b; }
+.day.holiday::after {
+  content: ""; position: absolute; top: 5px; right: 5px; width: 7px; height: 7px;
+  border-radius: 50%; background: #d9534f;
+}
+.holiday-box {
+  display: flex; justify-content: space-between; align-items: center; gap: 10px;
+  background: #fdf1f0; border-radius: 12px; padding: 10px 14px; margin-bottom: 12px;
+}
+.holiday-box button {
+  border: 0; border-radius: 8px; padding: 6px 10px; background: var(--card);
+  color: var(--ink); font-weight: 600; white-space: nowrap;
+}
+.holiday-box button.on { background: var(--green); color: #fff; }
+.notif { margin-top: 18px; }
+
 /* Navegación inferior */
 #tabs {
   position: fixed; left: 0; right: 0; bottom: 0; display: flex;

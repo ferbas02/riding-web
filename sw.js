@@ -1,6 +1,5 @@
 // Service worker mínimo: red primero, caché como respaldo para el "shell" de la app.
-// (En el paso 5 se agregan aquí los manejadores de notificaciones push.)
-const CACHE = "riding-shell-v1";
+const CACHE = "riding-shell-v2";
 const SHELL = ["./", "index.html", "style.css", "app.js", "config.js",
                "manifest.webmanifest", "icons/icon-192.png"];
 
@@ -14,6 +13,28 @@ self.addEventListener("activate", (e) => {
     caches.keys()
       .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
+  );
+});
+
+// ---- Notificaciones push ----
+self.addEventListener("push", (e) => {
+  let data = {};
+  try { data = e.data ? e.data.json() : {}; } catch { data = { body: e.data ? e.data.text() : "" }; }
+  e.waitUntil(self.registration.showNotification(data.title || "Equitación", {
+    body: data.body || "",
+    icon: "icons/icon-192.png",
+    data: { url: data.url || "./" },
+  }));
+});
+
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  const target = new URL((e.notification.data && e.notification.data.url) || "./", self.location.href).href;
+  e.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+      for (const c of list) { if ("focus" in c) return c.focus(); }
+      return self.clients.openWindow(target);
+    })
   );
 });
 

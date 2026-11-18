@@ -155,7 +155,8 @@ function renderCal() {
   for (let day = 1; day <= dim; day++) {
     const ds = `${m}-${String(day).padStart(2, "0")}`;
     const n = d ? (d.days[ds] || 0) : 0;
-    html += `<button type="button" class="day${n ? " has" : ""}${ds === today ? " today" : ""}" data-date="${ds}">` +
+    const hol = d && d.holidays && d.holidays[ds];
+    html += `<button type="button" class="day${n ? " has" : ""}${ds === today ? " today" : ""}${hol ? " holiday" : ""}" data-date="${ds}">` +
             `<span>${day}</span>${n ? `<b>${n > 1 ? "×" + n : "●"}</b>` : ""}</button>`;
   }
   $("#cal-grid").innerHTML = html;
@@ -170,6 +171,14 @@ function renderSheet() {
   const d = state.data[ds.slice(0, 7)];
   const items = d ? d.items.filter((i) => i.date === ds) : [];
   $("#sheet-title").textContent = longDate(ds);
+  const hol = d && d.holidays && d.holidays[ds];
+  $("#sheet-holiday").hidden = !hol;
+  if (hol) {
+    $("#holiday-name").textContent = "Festivo: " + hol.name;
+    const tg = $("#holiday-toggle");
+    tg.textContent = hol.reminder_enabled ? "Recordatorio: activado" : "Recordatorio: apagado";
+    tg.classList.toggle("on", hol.reminder_enabled);
+  }
   $("#sheet-list").innerHTML = items.length
     ? items.map((i, idx) => `<li><span>Clase ${idx + 1}</span><button type="button" data-del="${i.id}">Eliminar</button></li>`).join("")
     : `<li class="muted">Sin clases este día</li>`;
@@ -218,6 +227,76 @@ function removeClass(id) {
   });
 }
 
+function toggleHoliday() {
+  const ds = state.sheetDate;
+  const d = ds && state.data[ds.slice(0, 7)];
+  const hol = d && d.holidays && d.holidays[ds];
+  if (!hol) return;
+  return run(async () => {
+    const res = await api(`/holidays/${ds}`, {
+      method: "PUT", body: { reminder_enabled: !hol.reminder_enabled },
+    });
+    state.data[res.month] = res;
+    renderAll();
+    showToast(hol.reminder_enabled ? "Recordatorio apagado ese día" : "Recordatorio activado ese día");
+  });
+}
+
+/* ---------- notificaciones push ---------- */
+function b64ToUint8(b64) {
+  const pad = "=".repeat((4 - (b64.length % 4)) % 4);
+  const raw = atob((b64 + pad).replace(/-/g, "+").replace(/_/g, "/"));
+  return Uint8Array.from(raw, (c) => c.charCodeAt(0));
+}
+
+const pushSupported = () =>
+  "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+
+async function updateNotifStatus() {
+  const el = $("#notif-status");
+  if (!pushSupported()) {
+    el.textContent = "Para recibir recordatorios, abre la app desde el ícono de inicio.";
+    $("#notif-btn").hidden = true;
+    $("#notif-test").hidden = true;
+    return;
+  }
+  let sub = null;
+  try { sub = await (await navigator.serviceWorker.ready).pushManager.getSubscription(); } catch { /* noop */ }
+  const on = Notification.permission === "granted" && !!sub;
+  el.textContent = on ? "Recordatorios activados" : "Recordatorios desactivados";
+  $("#notif-btn").hidden = on;
+  $("#notif-test").hidden = !on;
+}
+
+function enableNotifications() {
+  return run(async () => {
+    // requestPermission debe ejecutarse directamente desde el toque (requisito de iOS)
+    const perm = await Notification.requestPermission();
+    if (perm !== "granted") {
+      throw new ApiError(0, "Permiso denegado. Actívalo en Ajustes › Notificaciones › Equitación.");
+    }
+    const cfg = await api("/push/config");
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: b64ToUint8(cfg.publicKey),
+      });
+    }
+    await api("/push/subscribe", { method: "POST", body: sub.toJSON() });
+    showToast("Recordatorios activados");
+    await updateNotifStatus();
+  });
+}
+
+function sendTestPush() {
+  return run(async () => {
+    const r = await api("/push/test", { method: "POST" });
+    showToast(r.sent ? "Prueba enviada" : `Sin envíos (suscripciones: ${r.subscriptions}, fallos: ${r.failed})`);
+  });
+}
+
 function openSheet(ds) {
   state.sheetDate = ds;
   renderSheet();
@@ -263,6 +342,9 @@ $("#sheet-list").onclick = (e) => {
   if (btn) removeClass(Number(btn.dataset.del));
 };
 $("#sheet-add").onclick = () => addClass(state.sheetDate);
+$("#holiday-toggle").onclick = () => toggleHoliday();
+$("#notif-btn").onclick = () => enableNotifications();
+$("#notif-test").onclick = () => sendTestPush();
 $("#sheet-close").onclick = closeSheet;
 $("#sheet-backdrop").onclick = closeSheet;
 document.addEventListener("visibilitychange", () => {
@@ -276,6 +358,7 @@ async function start() {
   show(state.tab);
   renderAll();
   await refresh();
+  updateNotifStatus();
 }
 
 if ("serviceWorker" in navigator) {

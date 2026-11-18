@@ -48,6 +48,11 @@
       <p id="status" class="status"></p>
       <button id="add-btn" class="primary big" type="button">Registrar clase</button>
       <p id="today-info" class="muted center"></p>
+      <div class="notif">
+        <p id="notif-status" class="muted center"></p>
+        <button id="notif-btn" class="primary" type="button" hidden>Activar notificaciones</button>
+        <p class="center"><button id="notif-test" class="link" type="button" hidden>Enviar notificación de prueba</button></p>
+      </div>
       <p class="center"><button id="change-token" class="link" type="button">Cambiar token</button></p>
     </section>
 
@@ -82,6 +87,10 @@
     <div class="sheet-backdrop" id="sheet-backdrop"></div>
     <div class="sheet-body">
       <h2 id="sheet-title"></h2>
+      <div id="sheet-holiday" class="holiday-box" hidden>
+        <span id="holiday-name"></span>
+        <button id="holiday-toggle" type="button"></button>
+      </div>
       <ul id="sheet-list"></ul>
       <button id="sheet-add" class="primary" type="button">+ Agregar clase este día</button>
       <button id="sheet-close" class="link" type="button">Cerrar</button>
