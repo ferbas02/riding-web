@@ -252,7 +252,18 @@ function b64ToUint8(b64) {
 const pushSupported = () =>
   "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
 
-async function updateNotifStatus() {
+// Guarda (o vuelve a guardar) la suscripción de este dispositivo en el servidor.
+// Es idempotente: la API borra la anterior con el mismo endpoint y la inserta de nuevo.
+async function syncSubscription(sub) {
+  try {
+    await api("/push/subscribe", { method: "POST", body: sub.toJSON() });
+  } catch (e) {
+    if (e.status === 401) handleError(e);
+    else showBanner("No se pudo registrar este dispositivo para recordatorios: " + e.message);
+  }
+}
+
+async function updateNotifStatus(sync = true) {
   const el = $("#notif-status");
   if (!pushSupported()) {
     el.textContent = "Para recibir recordatorios, abre la app desde el ícono de inicio.";
@@ -266,6 +277,7 @@ async function updateNotifStatus() {
   el.textContent = on ? "Recordatorios activados" : "Recordatorios desactivados";
   $("#notif-btn").hidden = on;
   $("#notif-test").hidden = !on;
+  if (on && sync) await syncSubscription(sub);
 }
 
 function enableNotifications() {
@@ -286,12 +298,16 @@ function enableNotifications() {
     }
     await api("/push/subscribe", { method: "POST", body: sub.toJSON() });
     showToast("Recordatorios activados");
-    await updateNotifStatus();
+    await updateNotifStatus(false);
   });
 }
 
 function sendTestPush() {
   return run(async () => {
+    // Antes de probar, re-sincroniza la suscripción por si el servidor la perdió
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) await api("/push/subscribe", { method: "POST", body: sub.toJSON() });
     const r = await api("/push/test", { method: "POST" });
     showToast(r.sent ? "Prueba enviada" : `Sin envíos (suscripciones: ${r.subscriptions}, fallos: ${r.failed})`);
   });
